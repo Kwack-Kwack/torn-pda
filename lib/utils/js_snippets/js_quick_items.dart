@@ -105,14 +105,17 @@ String runQuickItemJS({
     function buildLinksHtml(links) {
       if (!links || !Array.isArray(links) || links.length === 0) return '';
       try {
-        return links.map(function(link) {
+        var renderedLinks = links.map(function(link) {
           if (!link) return '';
           var title = link.title || link.text || 'Link';
           var url = link.url || '#';
           var cls = link.class || '';
           var attr = link.attr || '';
-          return '<a href="' + url + '" class="' + cls + '" data-pda-title="' + escapeHtmlAttr(title) + '" data-pda-url="' + escapeHtmlAttr(url) + '" ' + attr + '>' + title + '</a>';
-        }).join(' ');
+          var classes = ('pda-result-link ' + cls).trim();
+          return '<a href="' + url + '" class="' + classes + '" data-pda-title="' + escapeHtmlAttr(title) + '" data-pda-url="' + escapeHtmlAttr(url) + '" ' + attr + '>' + title + '</a>';
+        }).filter(Boolean).join('');
+        if (!renderedLinks) return '';
+        return '<div class="pda-result-links">' + renderedLinks + '</div>';
       } catch (_) {
         return '';
       }
@@ -144,6 +147,15 @@ String runQuickItemJS({
           cursor: pointer;
           text-decoration: underline;
         }
+        .resultBox .pda-result-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px 14px;
+          margin-top: 8px;
+        }
+        .resultBox .pda-result-link {
+          display: inline-block;
+        }
       `);
     } else {
       addStyle(`
@@ -158,6 +170,15 @@ String runQuickItemJS({
           color: #006994;
           cursor: pointer;
           text-decoration: underline;
+        }
+        .resultBox .pda-result-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px 14px;
+          margin-top: 8px;
+        }
+        .resultBox .pda-result-link {
+          display: inline-block;
         }
       `);
     }

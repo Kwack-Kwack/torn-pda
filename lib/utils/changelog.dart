@@ -102,7 +102,7 @@ class ChangeLogState extends State<ChangeLog> {
 
     // TODO: UPDATE REMOTE CONFIG FOR CHANGELOG!
 
-    // v3.12.3 - Build 634 - built 13/03/2026
+    // v3.13.0 - Build 635 - built 15/03/2026
     itemList.add(
       ChangeLogItem()
         ..version = 'Torn PDA v3.13.0'
@@ -124,6 +124,7 @@ class ChangeLogState extends State<ChangeLog> {
                 "dependent on the device and keyboard used).\n\n"
                 "IMPORTANT: the keyboard will overlay the bottom of the page (tab bar).",
           ),
+          "Improved spacing between links in quick item response messages",
           "Fixed Quick Items response box using personal items for faction links",
           "Fixed Torn Stats error message toast",
         ],
