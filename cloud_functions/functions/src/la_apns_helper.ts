@@ -39,6 +39,7 @@ interface RacingLAContentState {
   titleText: string;
   bodyText: string;
   targetTimeTimestamp?: number;
+  startTimeTimestamp?: number;
   currentServerTimestamp: number;
   showTimer: boolean;
 }

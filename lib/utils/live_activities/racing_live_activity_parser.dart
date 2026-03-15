@@ -39,6 +39,17 @@ class RacingLiveActivityParser {
 
     if (normalizedIcon17 != null && normalizedIcon17.isNotEmpty) {
       if (normalizedIcon17.contains('Currently racing')) {
+        // If icon18 has a result, the race is over even if icon17 lingers
+        if (normalizedIcon18 != null && normalizedIcon18.isNotEmpty) {
+          final String finishedDetail = _stripRacingPrefix(normalizedIcon18);
+          return RacingLiveActivityState(
+            phase: RacingLivePhase.finished,
+            titleText: 'Race finished',
+            bodyText: finishedDetail,
+            stateIdentifier: 'finished-${_sanitizeIdentifier(finishedDetail)}',
+          );
+        }
+
         final String detail = _stripRacingPrefix(normalizedIcon17);
         final int? remainingSeconds = parseRelativeSeconds(detail);
         final int? targetTimestamp = remainingSeconds == null ? null : baseTimestamp + remainingSeconds;

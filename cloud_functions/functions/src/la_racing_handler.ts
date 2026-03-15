@@ -67,6 +67,7 @@ export async function handleRacingLiveActivity(userStats: any, subscriber: any) 
             titleText: parsed.titleText,
             bodyText: parsed.bodyText,
             targetTimeTimestamp: parsed.targetTimestamp,
+            startTimeTimestamp: currentTimestamp,
             currentServerTimestamp: currentTimestamp,
             showTimer: parsed.targetTimestamp != null,
         });
@@ -76,6 +77,7 @@ export async function handleRacingLiveActivity(userStats: any, subscriber: any) 
                 stateIdentifier: parsed.stateIdentifier,
                 phase: parsed.phase,
                 targetTimestamp: parsed.targetTimestamp,
+                startTimestamp: currentTimestamp,
             });
 
             if (subscriber.la_racing_push_start_first_failure_ts) {
@@ -236,6 +238,7 @@ interface RacingLAContentStateForEnd {
     titleText: string;
     bodyText: string;
     targetTimeTimestamp?: number;
+    startTimeTimestamp?: number;
     currentServerTimestamp: number;
     showTimer: boolean;
 }

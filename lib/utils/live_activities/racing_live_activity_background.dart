@@ -3,6 +3,7 @@ import 'package:torn_pda/utils/live_activities/racing_live_activity_parser.dart'
 Map<String, dynamic> buildRacingLiveActivityArgs({
   required RacingLiveActivityState racingState,
   required int currentTimestamp,
+  int? startTimestamp,
   String? apiKey,
 }) {
   final Map<String, dynamic> args = {
@@ -11,6 +12,7 @@ Map<String, dynamic> buildRacingLiveActivityArgs({
     'titleText': racingState.titleText,
     'bodyText': racingState.bodyText,
     'targetTimeTimestamp': racingState.targetTimestamp,
+    'startTimeTimestamp': startTimestamp,
     'currentServerTimestamp': currentTimestamp,
     'showTimer': racingState.hasTimer,
   };

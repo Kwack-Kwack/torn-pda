@@ -9,6 +9,12 @@ private func racingTargetDate(context: ActivityViewContext<RacingActivityAttribu
 }
 
 @available(iOS 16.2, *)
+private func racingStartDate(context: ActivityViewContext<RacingActivityAttributes>) -> Date? {
+  guard let timestamp = context.state.startTimeTimestamp, timestamp > 0 else { return nil }
+  return Date(timeIntervalSince1970: TimeInterval(timestamp))
+}
+
+@available(iOS 16.2, *)
 private func racingCountdownLabel(for phase: String) -> String {
   switch phase {
   case "waiting":
@@ -48,6 +54,8 @@ private struct RacingTimerView: View {
         countsDown: true,
         showsHours: targetDate.timeIntervalSinceNow >= 3600
       )
+      .multilineTextAlignment(.center)
+      .frame(maxWidth: .infinity)
       .monospacedDigit()
     }
   }
@@ -71,6 +79,7 @@ private struct RacingLockScreenLiveActivityView: View {
   let context: ActivityViewContext<RacingActivityAttributes>
 
   private var targetDate: Date? { racingTargetDate(context: context) }
+  private var startDate: Date? { racingStartDate(context: context) }
   private var phase: String { context.state.phase }
   private var tint: Color { racingTint(for: phase, isStale: context.isStale) }
 
@@ -86,20 +95,46 @@ private struct RacingLockScreenLiveActivityView: View {
           .multilineTextAlignment(.center)
       }
 
-      Text(context.state.bodyText)
-        .font(.caption)
-        .foregroundColor(.white.opacity(context.isStale ? 0.65 : 0.85))
-        .multilineTextAlignment(.center)
-        .lineLimit(2)
+      if phase == "finished" {
+        Text(context.state.bodyText)
+          .font(.caption)
+          .foregroundColor(.white.opacity(context.isStale ? 0.65 : 0.85))
+          .multilineTextAlignment(.center)
+          .lineLimit(2)
+      }
 
       if context.state.showTimer, let targetDate {
-        VStack(spacing: 4) {
-          Text(racingCountdownLabel(for: phase))
-            .font(.caption2)
-            .foregroundColor(.white.opacity(0.7))
-          RacingTimerView(targetDate: targetDate, isStale: context.isStale)
-            .font(.system(size: 24, weight: .bold, design: .rounded))
-            .foregroundColor(.white)
+        if targetDate.timeIntervalSinceNow <= 0 {
+          Text("FINISHED")
+            .font(.caption.weight(.semibold))
+            .foregroundColor(.white.opacity(0.85))
+        } else {
+          VStack(spacing: 4) {
+            Text(racingCountdownLabel(for: phase))
+              .font(.caption2)
+              .foregroundColor(.white.opacity(0.7))
+            RacingTimerView(targetDate: targetDate, isStale: context.isStale)
+              .font(.system(size: 24, weight: .bold, design: .rounded))
+              .foregroundColor(.white)
+          }
+        }
+
+        if phase == "racing", let startDate {
+          if !context.isStale {
+            ProgressView(
+              timerInterval: startDate...targetDate,
+              countsDown: false,
+              label: { EmptyView() },
+              currentValueLabel: { EmptyView() }
+            )
+            .frame(height: 4)
+            .padding(.horizontal, 8)
+          } else {
+            Rectangle()
+              .frame(height: 4)
+              .foregroundColor(Color.gray.opacity(0.5))
+              .padding(.horizontal, 8)
+          }
         }
       } else if phase == "waitingUnknown" {
         Text("Start time pending")
@@ -144,11 +179,29 @@ private func racingDynamicIsland(context: ActivityViewContext<RacingActivityAttr
           Text(context.state.titleText)
             .font(.caption.weight(.semibold))
             .foregroundColor(.white)
-          Text(context.state.bodyText)
-            .font(.caption2)
-            .foregroundColor(.white.opacity(context.isStale ? 0.65 : 0.85))
-            .lineLimit(2)
-            .multilineTextAlignment(.center)
+          if phase == "finished" {
+            Text(context.state.bodyText)
+              .font(.caption2)
+              .foregroundColor(.white.opacity(context.isStale ? 0.65 : 0.85))
+              .lineLimit(2)
+              .multilineTextAlignment(.center)
+          }
+
+          if phase == "racing", let startDate = racingStartDate(context: context), let targetDate {
+            if !context.isStale {
+              ProgressView(
+                timerInterval: startDate...targetDate,
+                countsDown: false,
+                label: { EmptyView() },
+                currentValueLabel: { EmptyView() }
+              )
+              .frame(height: 4)
+            } else {
+              Rectangle()
+                .frame(height: 4)
+                .foregroundColor(Color.gray.opacity(0.5))
+            }
+          }
         }
       }
     },

@@ -10,6 +10,7 @@ public struct RacingActivityAttributes: ActivityAttributes {
     public var titleText: String
     public var bodyText: String
     public var targetTimeTimestamp: Int?
+    public var startTimeTimestamp: Int?
     public var currentServerTimestamp: Int
     public var showTimer: Bool
 
@@ -19,6 +20,7 @@ public struct RacingActivityAttributes: ActivityAttributes {
       titleText: String,
       bodyText: String,
       targetTimeTimestamp: Int?,
+      startTimeTimestamp: Int?,
       currentServerTimestamp: Int,
       showTimer: Bool
     ) {
@@ -27,6 +29,7 @@ public struct RacingActivityAttributes: ActivityAttributes {
       self.titleText = titleText
       self.bodyText = bodyText
       self.targetTimeTimestamp = targetTimeTimestamp
+      self.startTimeTimestamp = startTimeTimestamp
       self.currentServerTimestamp = currentServerTimestamp
       self.showTimer = showTimer
     }

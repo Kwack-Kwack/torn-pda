@@ -393,6 +393,7 @@ import workmanager_apple
             return
           }
           let targetTimeTimestamp = currentArgs["targetTimeTimestamp"] as? Int
+          let startTimeTimestamp = currentArgs["startTimeTimestamp"] as? Int
           Task {
             do {
               try await racingManager.startRacingActivity(
@@ -401,6 +402,7 @@ import workmanager_apple
                 titleText: titleText,
                 bodyText: bodyText,
                 targetTimeTimestamp: targetTimeTimestamp,
+                startTimeTimestamp: startTimeTimestamp,
                 currentServerTimestamp: currentServerTimestamp,
                 showTimer: showTimer
               )

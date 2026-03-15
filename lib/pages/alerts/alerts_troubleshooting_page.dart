@@ -1031,6 +1031,8 @@ class _AlertsTroubleshootingPageState extends State<AlertsTroubleshootingPage> {
     return buildRacingLiveActivityArgs(
       racingState: state,
       currentTimestamp: nowSeconds,
+      startTimestamp:
+          state.phase == RacingLivePhase.racing && state.targetTimestamp != null ? state.targetTimestamp! - 300 : null,
       apiKey: UserHelper.isApiKeyValid ? UserHelper.apiKey : null,
     );
   }

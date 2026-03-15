@@ -26,6 +26,7 @@ class LiveActivityRacingController extends GetxController {
   bool _isFirstValidProcessingPending = false;
   bool _skipNextNullAfterAdopt = false;
   String _lastProcessedStateIdentifier = '';
+  int? _racingStartTimestamp;
   Worker? _statusListenerWorker;
   StreamSubscription<LiveUpdateStatusEvent>? _statusEventSubscription;
 
@@ -141,6 +142,13 @@ class LiveActivityRacingController extends GetxController {
       return;
     }
 
+    // Track when the racing phase started for the progress bar
+    if (racingState.phase == RacingLivePhase.racing) {
+      _racingStartTimestamp ??= baseTimestamp;
+    } else {
+      _racingStartTimestamp = null;
+    }
+
     final bool shouldStartOrUpdate =
         !_isLALogicallyActive || racingState.stateIdentifier != _lastProcessedStateIdentifier;
     if (!shouldStartOrUpdate) return;
@@ -149,6 +157,7 @@ class LiveActivityRacingController extends GetxController {
       arguments: buildRacingLiveActivityArgs(
         racingState: racingState,
         currentTimestamp: baseTimestamp,
+        startTimestamp: _racingStartTimestamp,
         apiKey: Platform.isAndroid && UserHelper.isApiKeyValid ? UserHelper.apiKey : null,
       ),
     );
@@ -197,6 +206,7 @@ class LiveActivityRacingController extends GetxController {
   void _resetLAStateInternal() {
     _isLALogicallyActive = false;
     _lastProcessedStateIdentifier = '';
+    _racingStartTimestamp = null;
   }
 
   void _resetLAState() {

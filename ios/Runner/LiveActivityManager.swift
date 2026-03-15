@@ -455,6 +455,7 @@ class RacingLiveActivityManager {
     titleText: String,
     bodyText: String,
     targetTimeTimestamp: Int?,
+    startTimeTimestamp: Int?,
     currentServerTimestamp: Int,
     showTimer: Bool
   ) async throws {
@@ -471,6 +472,7 @@ class RacingLiveActivityManager {
           titleText: titleText,
           bodyText: bodyText,
           targetTimeTimestamp: targetTimeTimestamp,
+          startTimeTimestamp: startTimeTimestamp,
           currentServerTimestamp: currentServerTimestamp,
           showTimer: showTimer
         )
@@ -490,6 +492,7 @@ class RacingLiveActivityManager {
       titleText: titleText,
       bodyText: bodyText,
       targetTimeTimestamp: targetTimeTimestamp,
+      startTimeTimestamp: startTimeTimestamp,
       currentServerTimestamp: currentServerTimestamp,
       showTimer: showTimer
     )
@@ -519,6 +522,7 @@ class RacingLiveActivityManager {
     titleText: String,
     bodyText: String,
     targetTimeTimestamp: Int?,
+    startTimeTimestamp: Int?,
     currentServerTimestamp: Int,
     showTimer: Bool
   ) async throws {
@@ -533,6 +537,7 @@ class RacingLiveActivityManager {
       titleText: titleText,
       bodyText: bodyText,
       targetTimeTimestamp: targetTimeTimestamp,
+      startTimeTimestamp: startTimeTimestamp,
       currentServerTimestamp: currentServerTimestamp,
       showTimer: showTimer
     )
