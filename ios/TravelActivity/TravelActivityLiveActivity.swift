@@ -389,7 +389,7 @@ private func dynamicIslandContent(context: ActivityViewContext<TravelActivityAtt
       }
     }
   )
-  .widgetURL(URL(string: "tornpda://www.torn.com"))
+  .widgetURL(URL(string: "tornpda://travel/live"))
   .keylineTint(context.isStale ? Color.gray : Color.orange)
 }
 

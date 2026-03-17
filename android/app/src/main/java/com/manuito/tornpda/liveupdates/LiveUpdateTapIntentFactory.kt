@@ -3,6 +3,7 @@ package com.manuito.tornpda.liveupdates
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import com.manuito.tornpda.MainActivity
 
@@ -37,6 +38,13 @@ class LiveUpdateTapIntentFactory(private val context: Context) {
     ): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
             this.action = action
+            data = Uri.parse(
+                when (route) {
+                    LiveUpdateIntentExtras.ROUTE_TRAVEL -> "tornpda://travel/live"
+                    LiveUpdateIntentExtras.ROUTE_RACING -> "tornpda://www.torn.com/loader.php?sid=racing"
+                    else -> "tornpda://www.torn.com"
+                }
+            )
             putExtra(LiveUpdateIntentExtras.EXTRA_TARGET_ROUTE, route)
             putExtra(LiveUpdateIntentExtras.EXTRA_ENTRY_POINT, entryPoint)
             putExtra(LiveUpdateIntentExtras.EXTRA_SESSION_ID, sessionId)

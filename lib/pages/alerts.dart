@@ -279,6 +279,7 @@ class AlertsSettingsState extends State<AlertsSettings> {
                           },
                         ),
                       ),
+                      if (_firebaseUserModel!.travelNotification!) _travelNotificationTapSelector(),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
                         child: CheckboxListTile(
@@ -1414,92 +1415,182 @@ class AlertsSettingsState extends State<AlertsSettings> {
   }
 
   Widget _lifeTapSelector() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(25, 0, 20, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          const Flexible(
-            child: Row(
-              children: [
-                Icon(Icons.keyboard_arrow_right_outlined),
-                Flexible(
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 10),
-                    child: Text(
-                      "Notification tap opens",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+    return _notificationDestinationSelector(
+      value: _settingsProvider.lifeNotificationTapAction,
+      onChanged: (value) {
+        setState(() {
+          _settingsProvider.lifeNotificationTapAction = value;
+        });
+      },
+      items: const [
+        DropdownMenuItem(
+          value: "app",
+          child: SizedBox(
+            width: 110,
+            child: Text(
+              "App",
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 14,
+              ),
             ),
           ),
-          DropdownButton<String>(
-            value: _settingsProvider.lifeNotificationTapAction,
-            items: const [
-              DropdownMenuItem(
-                value: "app",
-                child: SizedBox(
-                  width: 110,
-                  child: Text(
-                    "App",
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 14,
+        ),
+        DropdownMenuItem(
+          value: "itemsOwn",
+          child: SizedBox(
+            width: 110,
+            child: Text(
+              "Own items",
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+        DropdownMenuItem(
+          value: "itemsFaction",
+          child: SizedBox(
+            width: 110,
+            child: Text(
+              "Faction items",
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+        DropdownMenuItem(
+          value: "factionMain",
+          child: SizedBox(
+            width: 110,
+            child: Text(
+              "Faction page",
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _travelNotificationTapSelector() {
+    return _notificationDestinationSelector(
+      value: _settingsProvider.travelNotificationTapAction,
+      onChanged: (value) {
+        setState(() {
+          _settingsProvider.travelNotificationTapAction = value;
+        });
+      },
+      items: _travelTapDestinationItems,
+      helperText: _travelTapDestinationExplanation,
+    );
+  }
+
+  Widget _travelLiveActivityTapSelector() {
+    return _notificationDestinationSelector(
+      value: _settingsProvider.travelLiveActivityTapAction,
+      onChanged: (value) {
+        setState(() {
+          _settingsProvider.travelLiveActivityTapAction = value;
+        });
+      },
+      items: _travelTapDestinationItems,
+      label: Platform.isAndroid ? "Live Update tap opens" : "Live Activity tap opens",
+      helperText: _travelTapDestinationExplanation,
+    );
+  }
+
+  static const String _travelTapDestinationExplanation =
+      "If set to Foreign Stocks, this only applies while flying abroad. The page will show all items filtered "
+      "to your destination country, and trips back to Torn will still open the browser.";
+
+  static const List<DropdownMenuItem<String>> _travelTapDestinationItems = [
+    DropdownMenuItem(
+      value: "browser",
+      child: SizedBox(
+        width: 110,
+        child: Text(
+          "Browser",
+          textAlign: TextAlign.right,
+          style: TextStyle(
+            fontSize: 14,
+          ),
+        ),
+      ),
+    ),
+    DropdownMenuItem(
+      value: "foreignStocks",
+      child: SizedBox(
+        width: 110,
+        child: Text(
+          "Foreign Stocks",
+          textAlign: TextAlign.right,
+          style: TextStyle(
+            fontSize: 14,
+          ),
+        ),
+      ),
+    ),
+  ];
+
+  Widget _notificationDestinationSelector({
+    required String value,
+    required ValueChanged<String?> onChanged,
+    required List<DropdownMenuItem<String>> items,
+    String label = "Notification tap opens",
+    String? helperText,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(25, 0, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Flexible(
+                child: Row(
+                  children: [
+                    const Icon(Icons.keyboard_arrow_right_outlined),
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 10),
+                        child: Text(
+                          label,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              DropdownMenuItem(
-                value: "itemsOwn",
-                child: SizedBox(
-                  width: 110,
-                  child: Text(
-                    "Own items",
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              DropdownMenuItem(
-                value: "itemsFaction",
-                child: SizedBox(
-                  width: 110,
-                  child: Text(
-                    "Faction items",
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              DropdownMenuItem(
-                value: "factionMain",
-                child: SizedBox(
-                  width: 110,
-                  child: Text(
-                    "Faction page",
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
+              DropdownButton<String>(
+                value: value,
+                items: items,
+                onChanged: onChanged,
               ),
             ],
-            onChanged: (value) async {
-              setState(() {
-                _settingsProvider.lifeNotificationTapAction = value;
-              });
-            },
           ),
+          if (helperText != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(34, 0, 0, 8),
+              child: Text(
+                helperText,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1584,6 +1675,7 @@ class AlertsSettingsState extends State<AlertsSettings> {
             },
           ),
         ),
+        _travelLiveActivityTapSelector(),
         if (Platform.isIOS || Platform.isAndroid)
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),

@@ -529,6 +529,22 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  var _travelNotificationTapAction = "browser";
+  String get travelNotificationTapAction => _travelNotificationTapAction;
+  set travelNotificationTapAction(value) {
+    _travelNotificationTapAction = value;
+    Prefs().setTravelNotificationTapAction(_travelNotificationTapAction);
+    notifyListeners();
+  }
+
+  var _travelLiveActivityTapAction = "browser";
+  String get travelLiveActivityTapAction => _travelLiveActivityTapAction;
+  set travelLiveActivityTapAction(value) {
+    _travelLiveActivityTapAction = value;
+    Prefs().setTravelLiveActivityTapAction(_travelLiveActivityTapAction);
+    notifyListeners();
+  }
+
   var _fullScreenByDeepLinkTap = false;
   bool get fullScreenByDeepLinkTap => _fullScreenByDeepLinkTap;
   set fullScreenByDeepLinkTap(bool value) {
@@ -1607,6 +1623,8 @@ class SettingsProvider extends ChangeNotifier {
     _drugsNotificationTapAction = await Prefs().getDrugsNotificationTapAction();
     _medicalNotificationTapAction = await Prefs().getMedicalNotificationTapAction();
     _boosterNotificationTapAction = await Prefs().getBoosterNotificationTapAction();
+    _travelNotificationTapAction = await Prefs().getTravelNotificationTapAction();
+    _travelLiveActivityTapAction = await Prefs().getTravelLiveActivityTapAction();
 
     final refresh = await Prefs().getBrowserRefreshMethod();
     switch (refresh) {

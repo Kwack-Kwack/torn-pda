@@ -434,6 +434,8 @@ class Prefs {
   final String _kDrugsNotificationTapAction = "pda_drugsNotificationTapAction";
   final String _kMedicalNotificationTapAction = "pda_medicalNotificationTapAction";
   final String _kBoosterNotificationTapAction = "pda_BoosterNotificationTapAction";
+  final String _kTravelNotificationTapAction = "pda_travelNotificationTapAction";
+  final String _kTravelLiveActivityTapAction = "pda_travelLiveActivityTapAction";
 
   // Items
   final String _kItemsSort = "pda_itemssSort";
@@ -3944,6 +3946,26 @@ class Prefs {
 
   Future setBoosterNotificationTapAction(String value) async {
     return await PrefsDatabase.setString(_kBoosterNotificationTapAction, value);
+  }
+
+  //
+
+  Future<String> getTravelNotificationTapAction() async {
+    return await PrefsDatabase.getString(_kTravelNotificationTapAction, 'browser');
+  }
+
+  Future setTravelNotificationTapAction(String value) async {
+    return await PrefsDatabase.setString(_kTravelNotificationTapAction, value);
+  }
+
+  //
+
+  Future<String> getTravelLiveActivityTapAction() async {
+    return await PrefsDatabase.getString(_kTravelLiveActivityTapAction, 'browser');
+  }
+
+  Future setTravelLiveActivityTapAction(String value) async {
+    return await PrefsDatabase.setString(_kTravelLiveActivityTapAction, value);
   }
 
   /// ----------------------------
