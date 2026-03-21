@@ -359,6 +359,41 @@ class SettingsBrowserPageState extends State<SettingsBrowserPage> {
             ),
           ),
         ),
+      SearchableRow(
+        label: "Dismiss keyboard on close",
+        searchText: _searchText,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Flexible(child: Text("Dismiss keyboard on close")),
+                  Switch(
+                    value: _webViewProvider.dismissKeyboardOnBrowserClose,
+                    onChanged: (value) {
+                      setState(() {
+                        _webViewProvider.dismissKeyboardOnBrowserClose = value;
+                      });
+                    },
+                    activeTrackColor: Colors.lightGreenAccent,
+                    activeThumbColor: Colors.green,
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Text(
+                  "Automatically dismiss the keyboard when the browser is sent to the background",
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     ];
 
     return buildSectionWithRows(
@@ -3155,6 +3190,41 @@ class SettingsBrowserPageState extends State<SettingsBrowserPage> {
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Text(
                   "This will prevent the browser from pausing when the app or browser are in the background. NOTE: it is NOT recommended to activate this setting, as it will consume more battery and resources",
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      SearchableRow(
+        label: "Fast keyboard",
+        searchText: _searchText,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Flexible(child: Text("Fast keyboard")),
+                  Switch(
+                    value: _settingsProvider.androidFastKeyboard,
+                    onChanged: (value) {
+                      setState(() {
+                        _settingsProvider.androidFastKeyboard = value;
+                      });
+                    },
+                    activeTrackColor: Colors.lightGreenAccent,
+                    activeThumbColor: Colors.green,
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Text(
+                  "Prevents the browser from resizing when the keyboard appears, which can improve keyboard speed on some devices. The keyboard will overlay the bottom of the page instead",
                   style: TextStyle(color: Colors.grey[600], fontSize: 12, fontStyle: FontStyle.italic),
                 ),
               ),

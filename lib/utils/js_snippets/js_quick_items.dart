@@ -92,18 +92,30 @@ String runQuickItemJS({
       return txt.value;
     }
 
+    function escapeHtmlAttr(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
     // Render links array from Torn response (if present)
     function buildLinksHtml(links) {
       if (!links || !Array.isArray(links) || links.length === 0) return '';
       try {
-        return links.map(function(link) {
+        var renderedLinks = links.map(function(link) {
           if (!link) return '';
           var title = link.title || link.text || 'Link';
           var url = link.url || '#';
           var cls = link.class || '';
           var attr = link.attr || '';
-          return '<a href="' + url + '" class="' + cls + '" ' + attr + '>' + title + '</a>';
-        }).join(' ');
+          var classes = ('pda-result-link ' + cls).trim();
+          return '<a href="' + url + '" class="' + classes + '" data-pda-title="' + escapeHtmlAttr(title) + '" data-pda-url="' + escapeHtmlAttr(url) + '" ' + attr + '>' + title + '</a>';
+        }).filter(Boolean).join('');
+        if (!renderedLinks) return '';
+        return '<div class="pda-result-links">' + renderedLinks + '</div>';
       } catch (_) {
         return '';
       }
@@ -135,6 +147,15 @@ String runQuickItemJS({
           cursor: pointer;
           text-decoration: underline;
         }
+        .resultBox .pda-result-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px 14px;
+          margin-top: 8px;
+        }
+        .resultBox .pda-result-link {
+          display: inline-block;
+        }
       `);
     } else {
       addStyle(`
@@ -149,6 +170,15 @@ String runQuickItemJS({
           color: #006994;
           cursor: pointer;
           text-decoration: underline;
+        }
+        .resultBox .pda-result-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px 14px;
+          margin-top: 8px;
+        }
+        .resultBox .pda-result-link {
+          display: inline-block;
         }
       `);
     }
@@ -639,7 +669,7 @@ String runQuickItemJS({
     // Use jQuery AJAX if available
     // Usage: Called by executeAction() to perform the actual Equip/Use request
     // [Action Execution - All Levels]
-    function useItemWithJQuery(itemId, isEquipAction, equipId, callback) {
+    function useItemWithJQuery(itemId, isEquipAction, equipId, callback, extraData) {
       if (typeof \$ !== 'undefined' && \$.ajax) {
         var ajaxUrl = "item.php?rfcv=" + getRFC();
         var ajaxData;
@@ -648,6 +678,9 @@ String runQuickItemJS({
           ajaxData = { step: "actionForm", confirm: 1, action: "equip", id: equipId };
         } else {
           ajaxData = { step: "useItem", itemID: itemId, item: itemId };
+          if (extraData && extraData.fac) {
+            ajaxData.fac = extraData.fac;
+          }
         }
         
         \$.ajax({
@@ -668,6 +701,47 @@ String runQuickItemJS({
         return true;
       }
       return false;
+    }
+
+    function getQuickLinkInfo(link, fallbackItemId) {
+      var href = '';
+      var title = '';
+      var onclickAttr = '';
+      try {
+        href = link.getAttribute('href') || link.getAttribute('data-pda-url') || '';
+        title = (link.textContent || link.getAttribute('data-pda-title') || '').trim();
+        onclickAttr = link.getAttribute('onclick') || '';
+      } catch (_) {}
+
+      var titleLower = title.toLowerCase();
+      var hrefLower = href.toLowerCase();
+      var onclickLower = onclickAttr.toLowerCase();
+      var attrDump = '';
+      try {
+        attrDump = Array.prototype.map.call(link.attributes || [], function(attr) {
+          return String(attr.name || '') + '=' + String(attr.value || '');
+        }).join(' ').toLowerCase();
+      } catch (_) {}
+
+      var clickedItemId = '';
+      try {
+        clickedItemId = link.getAttribute('data-item') || (link.dataset ? link.dataset.item : '') || '';
+      } catch (_) {}
+      if (!clickedItemId) clickedItemId = fallbackItemId;
+
+      var isFactionLink = titleLower.indexOf('from faction') >= 0 ||
+          hrefLower.indexOf('fac=1') >= 0 ||
+          onclickLower.indexOf('fac=1') >= 0 ||
+          attrDump.indexOf('fac=1') >= 0 ||
+          attrDump.indexOf('data-fac="1"') >= 0 ||
+          attrDump.indexOf('data-fac=1') >= 0;
+
+      return {
+        itemId: clickedItemId,
+        isFactionLink: isFactionLink,
+        href: href,
+        title: title,
+      };
     }
     
     var url = "";
@@ -1007,7 +1081,15 @@ String runQuickItemJS({
                   var isQuickLink = link.classList.contains('next-act') || link.classList.contains('decrement-amount') || link.getAttribute('data-item');
                   if (!isQuickLink) return;
                   e.preventDefault();
-                  useItemWithJQuery(itemId, canEquip, resolvedId, handleJQueryResponse);
+                  var linkInfo = getQuickLinkInfo(link, itemId);
+                  logTemp('Quick link clicked', linkInfo);
+                  useItemWithJQuery(
+                    linkInfo.itemId || itemId,
+                    canEquip,
+                    resolvedId,
+                    handleJQueryResponse,
+                    linkInfo.isFactionLink ? { fac: 1 } : null,
+                  );
                 } catch (_) {}
               });
             }

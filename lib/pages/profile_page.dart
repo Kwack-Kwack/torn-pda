@@ -1,3 +1,4 @@
+import 'package:torn_pda/utils/live_activities/racing_live_activity_parser.dart';
 // Dart imports:
 import 'dart:async';
 import 'dart:developer';
@@ -76,6 +77,7 @@ import 'package:torn_pda/widgets/revive/nuke_revive_button.dart';
 import 'package:torn_pda/widgets/revive/uhc_revive_button.dart';
 import 'package:torn_pda/widgets/revive/wolverines_revive_button.dart';
 import 'package:torn_pda/widgets/revive/wtf_revive_button.dart';
+import 'package:torn_pda/widgets/revive/combat_ready_revive_button.dart';
 import 'package:torn_pda/widgets/tct_clock.dart';
 import 'package:torn_pda/widgets/travel/travel_return_widget.dart';
 import 'package:torn_pda/widgets/pda_browser_icon.dart';
@@ -1598,6 +1600,16 @@ class ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                           Padding(
                             padding: const EdgeInsets.only(left: 13, top: 10),
                             child: WolverinesReviveButton(
+                              themeProvider: _themeProvider,
+                              user: _user,
+                              webViewProvider: _webViewProvider,
+                              settingsProvider: _settingsProvider,
+                            ),
+                          ),
+                        if (_user!.status!.state == 'Hospital' && _w.combatReadyReviveActive)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 13, top: 10),
+                            child: CombatReadyReviveButton(
                               themeProvider: _themeProvider,
                               user: _user,
                               webViewProvider: _webViewProvider,
@@ -5844,9 +5856,20 @@ class ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
               ..timeLeft = apiResponse.travel!.timeLeft
               ..timestamp = apiResponse.travel!.timestamp;
 
+            // Map icons from the profile response so Racing LA can detect
+            // race state immediately (icon17 = racing/waiting, icon18 = finished)
+            bars_model.Basicicons? chainBasicicons;
+            if (apiResponse.icons != null) {
+              chainBasicicons = bars_model.Basicicons(
+                icon17: apiResponse.icons!.icon17,
+                icon18: apiResponse.icons!.icon18,
+              );
+            }
+
             bars_model.BarsStatusCooldownsModel externalStatusModel = bars_model.BarsStatusCooldownsModel()
               ..status = chainStatusModel
-              ..travel = chainTravelModel;
+              ..travel = chainTravelModel
+              ..basicicons = chainBasicicons;
 
             _chainController.getOrSetStatus(externalStatusModel: externalStatusModel);
           }
@@ -5983,7 +6006,7 @@ class ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
       final resp = await http.get(Uri.parse(tornStatsURL)).timeout(const Duration(seconds: 5));
       if (resp.statusCode == 200) {
         final StatsChartTornStats statsJson = statsChartTornStatsFromJson(resp.body);
-        if (!statsJson.message!.contains("ERROR")) {
+        if (statsJson.status == true && statsJson.data != null && statsJson.data!.isNotEmpty) {
           setState(() {
             _statsChartModel = statsJson;
             _statsChartIsCached = false;
@@ -5993,33 +6016,20 @@ class ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
           Prefs().setTornStatsChartSave(resp.body);
           _settingsProvider!.setTornStatsChartDateTime = DateTime.now().millisecondsSinceEpoch;
         } else {
-          await loadFromCacheOrError(statsJson.message ?? "Unknown");
+          final errorMsg = formatTornStatsErrorMessage(statsJson.message);
+          await loadFromCacheOrError(
+            errorMsg,
+            forceShow: errorMsg.toLowerCase().contains('user not found'),
+          );
         }
       } else {
         String errorMsg;
         bool forceShow = false;
         if (resp.statusCode == 404 && resp.body.contains("User not found")) {
-          errorMsg = "User not found. Please check your Torn Stats API Key in Settings > Alternative Keys, "
-              "or disable the Torn Stats chart entirely by using the gear icon at the top of this section";
+          errorMsg = formatTornStatsErrorMessage('User not found.');
           forceShow = true;
         } else {
-          switch (resp.statusCode) {
-            case 401:
-            case 403:
-              errorMsg = "unauthorized";
-              break;
-            case 404:
-              errorMsg = "server not found";
-              break;
-            case 500:
-            case 502:
-            case 503:
-            case 504:
-              errorMsg = "server error";
-              break;
-            default:
-              errorMsg = "HTTP ${resp.statusCode}";
-          }
+          errorMsg = formatTornStatsHttpError(resp.statusCode);
         }
         await loadFromCacheOrError(errorMsg, forceShow: forceShow);
       }
@@ -8945,16 +8955,8 @@ class ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   }
 
   DateTime? _parseRaceTime(String input) {
-    final raceStartRegex =
-        RegExp(r"Waiting for a race to start - (\d+ days?,)? (\d+ hours?,)? (\d+) minutes and (\d+) seconds");
-    final match = raceStartRegex.firstMatch(input);
-    if (match != null) {
-      int days = int.tryParse(match.group(1)?.replaceAll(RegExp(r'[^0-9]'), '') ?? '0') ?? 0;
-      int hours = int.tryParse(match.group(2)?.replaceAll(RegExp(r'[^0-9]'), '') ?? '0') ?? 0;
-      int minutes = int.tryParse(match.group(3) ?? '0') ?? 0;
-      int seconds = int.tryParse(match.group(4) ?? '0') ?? 0;
-      return DateTime.now().add(Duration(days: days, hours: hours, minutes: minutes, seconds: seconds));
-    }
-    return null;
+    final int? totalSeconds = RacingLiveActivityParser.parseRelativeSeconds(input);
+    if (totalSeconds == null) return null;
+    return DateTime.now().add(Duration(seconds: totalSeconds));
   }
 }

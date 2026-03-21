@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:torn_pda/main.dart';
 import 'package:torn_pda/models/chaining/target_sort.dart';
 import 'package:torn_pda/models/chaining/war_settings.dart';
+import 'package:torn_pda/models/trades/trade_price_provider.dart';
 import 'package:torn_pda/utils/live_activities/live_activity_bridge.dart';
 import 'package:torn_pda/utils/sembast_db.dart';
 import 'package:torn_pda/widgets/webviews/webview_fab.dart';
@@ -148,6 +149,8 @@ class Prefs {
   final String _kFabTripleTapAction = "pda_fabTripleTapAction";
 
   final String _kBrowserDoNotPauseWebviews = "pda_browserDoNotPauseWebviews";
+  final String _kAndroidFastKeyboard = "pda_androidFastKeyboard";
+  final String _kDismissKeyboardOnBrowserClose = "pda_dismissKeyboardOnBrowserClose";
 
   // Browser gestures
   final String _kIosBrowserPinch = "pda_iosBrowserPinch";
@@ -160,7 +163,7 @@ class Prefs {
   final String _kTestBrowserActive = "pda_testBrowserActive";
   final String _kDefaultTimeFormat = "pda_defaultTimeFormat";
   final String _kDefaultTimeZone = "pda_defaultTimeZone";
-  final String _kShowDateInClockString = "pda_showDateInClockString"; // changed from bool to string
+  final String _kShowDateInClockString = "pda_showDateInClockString"; // String-based (replaces legacy bool key)
   final String _kShowSecondsInClock = "pda_showSecondsInClock";
   final String _kAppBarPosition = "pda_AppBarPosition";
   final String _kSpiesSource = "pda_SpiesSource";
@@ -317,6 +320,7 @@ class Prefs {
   final String _kTradeCalculatorEnabled = "pda_tradeCalculatorActive";
   final String _kAWHEnabled = "pda_awhActive";
   final String _kTornExchangeEnabled = "pda_tornExchangeActive";
+  final String _kTradePriceProvider = "pda_tradePriceProvider";
   final String _kTornExchangeProfitEnabled = "pda_tornExchangeProfitActive";
   final String _kCityFinderEnabled = "pda_cityFinderActive";
   final String _kAwardsSort = "pda_awardsSort";
@@ -359,12 +363,14 @@ class Prefs {
   final String _kUseWtfRevive = "pda_useWtfRevive";
   final String _kUseMidnightXRevive = "pda_useMidnightXRevive";
   final String _kUseWolverinesRevive = "pda_useWolverinesRevive";
+  final String _kUseCombatReadyRevive = "pda_useCombatReadyRevive";
 
   // Chaining stats sharing
   final String _kStatsShareIncludeHiddenTargets = "pda_statsShareIncludeHiddenTargets";
   final String _kStatsShareShowOnlyTotals = "pda_statsShareShowOnlyTotals";
   final String _kStatsShareShowEstimatesIfNoSpyAvailable = "pda_statsShareShowEstimatesIfNoSpyAvailable";
   final String _kStatsShareIncludeTargetsWithNoStatsAvailable = "pda_statsShareIncludeTargetsWithNoStatsAvailable";
+  final String _kStatsShareIncludeFFScouterFairFight = "pda_statsShareIncludeFFScouterFairFight";
 
   // Vault sharing
   final String _kVaultShareEnabled = "pda_vaultShareEnabled";
@@ -428,6 +434,8 @@ class Prefs {
   final String _kDrugsNotificationTapAction = "pda_drugsNotificationTapAction";
   final String _kMedicalNotificationTapAction = "pda_medicalNotificationTapAction";
   final String _kBoosterNotificationTapAction = "pda_BoosterNotificationTapAction";
+  final String _kTravelNotificationTapAction = "pda_travelNotificationTapAction";
+  final String _kTravelLiveActivityTapAction = "pda_travelLiveActivityTapAction";
 
   // Items
   final String _kItemsSort = "pda_itemssSort";
@@ -543,8 +551,11 @@ class Prefs {
 
   // Live Activities
   final String _kIosLiveActivityTravelEnabled = "pda_iosLiveActivityTravelEnabled";
+  final String _kIosLiveActivityRacingEnabled = "pda_iosLiveActivityRacingEnabled";
   final String _kAndroidLiveActivityTravelEnabled = "pda_androidLiveActivityTravelEnabled";
+  final String _kAndroidLiveActivityRacingEnabled = "pda_androidLiveActivityRacingEnabled";
   final String _kIosLiveActivityTravelPushToken = "pda_iosLiveActivityTravelPushToken";
+  final String _kIosLiveActivityRacingPushToken = "pda_iosLiveActivityRacingPushToken";
   // Android-only: used to avoid repeating "Arrived" Live Update after app relaunch
   final String _kAndroidLiveActivityTravelLastArrivalId = "pda_androidLiveActivityTravelLastArrivalId";
   final String _kLiveActivityCurrentTripBackup = "pda_liveActivityCurrentTripBackup";
@@ -1465,6 +1476,22 @@ class Prefs {
 
   Future setBrowserDoNotPauseWebviews(bool value) async {
     return await PrefsDatabase.setBool(_kBrowserDoNotPauseWebviews, value);
+  }
+
+  Future<bool> getAndroidFastKeyboard() async {
+    return await PrefsDatabase.getBool(_kAndroidFastKeyboard, false);
+  }
+
+  Future setAndroidFastKeyboard(bool value) async {
+    return await PrefsDatabase.setBool(_kAndroidFastKeyboard, value);
+  }
+
+  Future<bool> getDismissKeyboardOnBrowserClose() async {
+    return await PrefsDatabase.getBool(_kDismissKeyboardOnBrowserClose, true);
+  }
+
+  Future setDismissKeyboardOnBrowserClose(bool value) async {
+    return await PrefsDatabase.setBool(_kDismissKeyboardOnBrowserClose, value);
   }
 
   // Settings - Browser Gestures
@@ -2675,6 +2702,14 @@ class Prefs {
     return await PrefsDatabase.setBool(_kUseWolverinesRevive, value);
   }
 
+  Future<bool> getUseCombatReadyRevive() async {
+    return await PrefsDatabase.getBool(_kUseCombatReadyRevive, false);
+  }
+
+  Future setUseCombatReadyRevive(bool value) async {
+    return await PrefsDatabase.setBool(_kUseCombatReadyRevive, value);
+  }
+
   /// ---------------------------------------
   /// Methods for stats sharing configuration
   /// ---------------------------------------
@@ -2714,6 +2749,16 @@ class Prefs {
 
   Future setStatsShareIncludeTargetsWithNoStatsAvailable(bool value) async {
     return await PrefsDatabase.setBool(_kStatsShareIncludeTargetsWithNoStatsAvailable, value);
+  }
+
+  //
+
+  Future<bool> getStatsShareIncludeFFScouterFairFight() async {
+    return await PrefsDatabase.getBool(_kStatsShareIncludeFFScouterFairFight, false);
+  }
+
+  Future setStatsShareIncludeFFScouterFairFight(bool value) async {
+    return await PrefsDatabase.setBool(_kStatsShareIncludeFFScouterFairFight, value);
   }
 
   /// ----------------------------
@@ -2910,11 +2955,49 @@ class Prefs {
   }
 
   Future<bool> getTornExchangeEnabled() async {
-    return await PrefsDatabase.getBool(_kTornExchangeEnabled, true);
+    return await getTradePriceProvider() == TradePriceProvider.tornExchange;
   }
 
   Future setTornExchangeEnabled(bool value) async {
+    final currentProvider = await getTradePriceProvider();
+
+    if (value) {
+      await setTradePriceProvider(TradePriceProvider.tornExchange);
+    } else if (currentProvider == TradePriceProvider.tornExchange) {
+      await setTradePriceProvider(TradePriceProvider.none);
+    }
+
     return await PrefsDatabase.setBool(_kTornExchangeEnabled, value);
+  }
+
+  Future<TradePriceProvider> getTradePriceProvider() async {
+    final storedValue = await PrefsDatabase.getString(_kTradePriceProvider, '');
+
+    if (storedValue.isNotEmpty) {
+      return tradePriceProviderFromStorage(storedValue);
+    }
+
+    final tornExchangeEnabled = await PrefsDatabase.getBool(_kTornExchangeEnabled, true);
+    return tornExchangeEnabled ? TradePriceProvider.tornExchange : TradePriceProvider.none;
+  }
+
+  Future setTradePriceProvider(TradePriceProvider provider) async {
+    await PrefsDatabase.setString(_kTradePriceProvider, provider.storageValue);
+    await PrefsDatabase.setBool(_kTornExchangeEnabled, provider == TradePriceProvider.tornExchange);
+  }
+
+  Future<bool> getTornW3bEnabled() async {
+    return await getTradePriceProvider() == TradePriceProvider.tornW3b;
+  }
+
+  Future setTornW3bEnabled(bool value) async {
+    final currentProvider = await getTradePriceProvider();
+
+    if (value) {
+      await setTradePriceProvider(TradePriceProvider.tornW3b);
+    } else if (currentProvider == TradePriceProvider.tornW3b) {
+      await setTradePriceProvider(TradePriceProvider.none);
+    }
   }
 
   Future<bool> getTornExchangeProfitEnabled() async {
@@ -3865,6 +3948,26 @@ class Prefs {
     return await PrefsDatabase.setString(_kBoosterNotificationTapAction, value);
   }
 
+  //
+
+  Future<String> getTravelNotificationTapAction() async {
+    return await PrefsDatabase.getString(_kTravelNotificationTapAction, 'browser');
+  }
+
+  Future setTravelNotificationTapAction(String value) async {
+    return await PrefsDatabase.setString(_kTravelNotificationTapAction, value);
+  }
+
+  //
+
+  Future<String> getTravelLiveActivityTapAction() async {
+    return await PrefsDatabase.getString(_kTravelLiveActivityTapAction, 'browser');
+  }
+
+  Future setTravelLiveActivityTapAction(String value) async {
+    return await PrefsDatabase.setString(_kTravelLiveActivityTapAction, value);
+  }
+
   /// ----------------------------
   /// Methods for show cases
   /// ----------------------------
@@ -4319,6 +4422,8 @@ class Prefs {
     switch (activityType) {
       case LiveActivityType.travel:
         return _kIosLiveActivityTravelPushToken;
+      case LiveActivityType.racing:
+        return _kIosLiveActivityRacingPushToken;
     }
   }
 
@@ -4350,12 +4455,30 @@ class Prefs {
     return await PrefsDatabase.setBool(_kIosLiveActivityTravelEnabled, value);
   }
 
+  Future<bool> getIosLiveActivityRacingEnabled() async {
+    return await PrefsDatabase.getBool(_kIosLiveActivityRacingEnabled, false);
+  }
+
+  Future setIosLiveActivityRacingEnabled(bool value) async {
+    return await PrefsDatabase.setBool(_kIosLiveActivityRacingEnabled, value);
+  }
+
   Future<bool> getAndroidLiveActivityTravelEnabled() async {
     return await PrefsDatabase.getBool(_kAndroidLiveActivityTravelEnabled, false);
   }
 
   Future setAndroidLiveActivityTravelEnabled(bool value) async {
     return await PrefsDatabase.setBool(_kAndroidLiveActivityTravelEnabled, value);
+  }
+
+  Future<bool> getAndroidLiveActivityRacingEnabled() async {
+    final prefs = SharedPreferencesAsync();
+    return await prefs.getBool(_kAndroidLiveActivityRacingEnabled) ?? false;
+  }
+
+  Future setAndroidLiveActivityRacingEnabled(bool value) async {
+    final prefs = SharedPreferencesAsync();
+    return await prefs.setBool(_kAndroidLiveActivityRacingEnabled, value);
   }
 
   /// Android-only: persisted to avoid duplicating the last "Arrived" Live Update after relaunch
@@ -4370,15 +4493,17 @@ class Prefs {
   }
 
   Future<String?> getLiveActivityCurrentTripBackup() async {
-    final String value = await PrefsDatabase.getString(_kLiveActivityCurrentTripBackup, "");
+    final prefs = SharedPreferencesAsync();
+    final String value = await prefs.getString(_kLiveActivityCurrentTripBackup) ?? "";
     return value.isEmpty ? null : value;
   }
 
   Future setLiveActivityCurrentTripBackup(String? jsonString) async {
+    final prefs = SharedPreferencesAsync();
     if (jsonString == null) {
-      return await PrefsDatabase.setString(_kLiveActivityCurrentTripBackup, "");
+      return await prefs.setString(_kLiveActivityCurrentTripBackup, "");
     }
-    return await PrefsDatabase.setString(_kLiveActivityCurrentTripBackup, jsonString);
+    return await prefs.setString(_kLiveActivityCurrentTripBackup, jsonString);
   }
 
   /// ----------------------------

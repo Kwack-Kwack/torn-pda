@@ -31,6 +31,7 @@ import 'package:toggle_switch/toggle_switch.dart';
 import 'package:torn_pda/main.dart';
 import 'package:torn_pda/models/faction/faction_attacks_model.dart';
 import 'package:torn_pda/models/profile/own_profile_basic.dart';
+import 'package:torn_pda/models/profile/own_profile_model.dart';
 import 'package:torn_pda/models/profile/own_stats_model.dart';
 import 'package:torn_pda/models/userscript_model.dart';
 import 'package:torn_pda/pages/about.dart';
@@ -51,6 +52,7 @@ import 'package:torn_pda/pages/settings/userscripts_page.dart';
 import 'package:torn_pda/pages/settings_page.dart';
 import 'package:torn_pda/pages/stakeouts_page.dart';
 import 'package:torn_pda/pages/tips_page.dart';
+import 'package:torn_pda/pages/travel/foreign_stock_page.dart';
 import 'package:torn_pda/pages/travel_page.dart';
 import 'package:torn_pda/providers/api/api_caller.dart';
 import 'package:torn_pda/providers/api/api_v1_calls.dart';
@@ -75,6 +77,7 @@ import 'package:torn_pda/utils/connectivity/connectivity_handler.dart';
 import 'package:torn_pda/utils/firebase_auth.dart';
 import 'package:torn_pda/utils/firebase_firestore.dart';
 import 'package:torn_pda/utils/live_activities/live_activity_bridge.dart';
+import 'package:torn_pda/utils/live_activities/live_activity_racing_controller.dart';
 import 'package:torn_pda/utils/live_activities/live_activity_travel_controller.dart';
 import 'package:torn_pda/utils/notification.dart';
 import 'package:torn_pda/widgets/settings/backup_local/prefs_backup_after_import_dialog.dart';
@@ -146,6 +149,7 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
 
   DateTime? _deepLinkSubTriggeredTime;
   bool _deepLinkInitOnce = false;
+  bool _openingForeignStocksExternally = false;
 
   // Used to avoid racing condition with browser launch from notifications (not included in the FutureBuilder), as
   // preferences take time to load
@@ -729,6 +733,7 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
         "revive_nuke": "1.8 million or 2 Xanax",
         "revive_uhc": "1.8 million or 2 Xanax",
         "revive_wtf": "1.8 million or 2 Xanax",
+        "revive_combat_ready": "1.5 million or 2 Xanax",
         // Torn API
         "apiV2LegacyRequests": "",
         // PDA Update Details
@@ -812,6 +817,7 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
       _settingsProvider.reviveNukePrice = remoteConfig.getString("revive_nuke");
       _settingsProvider.reviveUhcPrice = remoteConfig.getString("revive_uhc");
       _settingsProvider.reviveWtfPrice = remoteConfig.getString("revive_wtf");
+      _settingsProvider.reviveCombatReadyPrice = remoteConfig.getString("revive_combat_ready");
 
       // Sendbird
       final sb = Get.find<SendbirdController>();
@@ -1089,6 +1095,38 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
       }
     }
 
+    if (link != null && link.startsWith("tornpda://travel/")) {
+      if (_deepLinkSubTriggeredTime != null && DateTime.now().difference(_deepLinkSubTriggeredTime!).inSeconds < 3) {
+        return;
+      }
+      _deepLinkSubTriggeredTime = DateTime.now();
+
+      try {
+        final uri = Uri.parse(link);
+        final entryPoint = uri.pathSegments.isEmpty ? "" : uri.pathSegments.first;
+        if (uri.host == "travel" && (entryPoint == "live" || entryPoint == "notification")) {
+          final action = entryPoint == "live"
+              ? _settingsProvider.travelLiveActivityTapAction
+              : _settingsProvider.travelNotificationTapAction;
+
+          if (await _handleTravelEntryAction(action: action)) {
+            return;
+          }
+
+          _preferencesCompleter.future.whenComplete(() async {
+            _webViewProvider.openBrowserPreference(
+              context: context,
+              url: "https://www.torn.com",
+              browserTapType: BrowserTapType.deeplink,
+            );
+          });
+          return;
+        }
+      } catch (e) {
+        log("Error handling travel deep link: $e");
+      }
+    }
+
     // Handle in-app settings deep links (e.g. tornpda://settings/browser?highlight=clear-cache)
     if (link != null && link.startsWith("tornpda://settings/")) {
       // Prevents double activation (same guard as browser deep links)
@@ -1327,6 +1365,9 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
     }
 
     if (travel) {
+      if (await _handleTravelEntryAction(action: _settingsProvider.travelNotificationTapAction)) {
+        return;
+      }
       launchBrowserWithUrl = true;
       browserUrl = "https://www.torn.com";
     } else if (hospital) {
@@ -1621,6 +1662,9 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
           }
         }
       } else if (payload == 'travel') {
+        if (await _handleTravelEntryAction(action: _settingsProvider.travelNotificationTapAction)) {
+          return;
+        }
         launchBrowserWithUrl = true;
         browserUrl = 'https://www.torn.com';
       } else if (payload == 'restocks') {
@@ -3030,6 +3074,61 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
     _getPages();
   }
 
+  Future<bool> _handleTravelEntryAction({
+    required String action,
+  }) async {
+    if (action != "foreignStocks") return false;
+
+    final destination = await _getCurrentTravelDestination();
+    if (destination == null || destination == "Torn") return false;
+
+    await _openForeignStocksPageIfNeeded(temporaryDestinationCountry: destination);
+    return true;
+  }
+
+  Future<String?> _getCurrentTravelDestination() async {
+    final profileResponse = await ApiCallsV1.getOwnProfileExtended(limit: 3);
+    if (profileResponse is OwnProfileExtended) {
+      return profileResponse.travel?.destination;
+    }
+
+    log("Unable to resolve travel destination before travel tap routing: $profileResponse");
+    return null;
+  }
+
+  Future<void> _openForeignStocksPageIfNeeded({
+    String? temporaryDestinationCountry,
+  }) async {
+    await _preferencesCompleter.future;
+    if (!mounted || routeName == "foreign_stock" || _openingForeignStocksExternally) return;
+
+    _openingForeignStocksExternally = true;
+
+    if (!_webViewProvider.webViewSplitActive) {
+      _webViewProvider.browserShowInForeground = false;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || routeName == "foreign_stock") {
+        _openingForeignStocksExternally = false;
+        return;
+      }
+
+      Navigator.of(context)
+          .push(
+        MaterialPageRoute(
+          builder: (BuildContext context) => ForeignStockPage(
+            apiKey: UserHelper.apiKey,
+            temporaryDestinationCountry: temporaryDestinationCountry,
+          ),
+        ),
+      )
+          .whenComplete(() {
+        _openingForeignStocksExternally = false;
+      });
+    });
+  }
+
   void _openDrawer() {
     if (routeWithDrawer) {
       if (_webViewProvider.webViewSplitActive && _webViewProvider.splitScreenPosition == WebViewSplitPosition.left) {
@@ -3259,13 +3358,14 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
 
       if (!isAndroid && !isIos) return;
       final bool enabledForPlatform = isAndroid
-          ? _settingsProvider.androidLiveActivityTravelEnabled
-          : _settingsProvider.iosLiveActivityTravelEnabled;
+          ? (_settingsProvider.androidLiveActivityTravelEnabled || _settingsProvider.androidLiveActivityRacingEnabled)
+          : (_settingsProvider.iosLiveActivityTravelEnabled || _settingsProvider.iosLiveActivityRacingEnabled);
       if (!enabledForPlatform) return;
 
       if (isIos && kSdkIos < 16.2) {
         // Regardless of user settings, disable Live Activities on iOS versions below 16.2
         _settingsProvider.iosLiveActivityTravelEnabled = false;
+        _settingsProvider.iosLiveActivityRacingEnabled = false;
         return;
       }
 
@@ -3277,7 +3377,13 @@ class DrawerPageState extends State<DrawerPage> with WidgetsBindingObserver, Aut
       final travelController = Get.find<LiveActivityTravelController>();
 
       bridgeController.initializeHandler();
-      await travelController.activate();
+      if (isAndroid || _settingsProvider.iosLiveActivityTravelEnabled) {
+        await travelController.activate();
+      }
+      if ((isIos && _settingsProvider.iosLiveActivityRacingEnabled) ||
+          (isAndroid && _settingsProvider.androidLiveActivityRacingEnabled)) {
+        await Get.find<LiveActivityRacingController>().activate();
+      }
     });
   }
 

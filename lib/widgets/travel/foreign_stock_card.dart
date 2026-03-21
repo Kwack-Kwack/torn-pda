@@ -12,6 +12,7 @@ import 'package:expandable/expandable.dart';
 import 'package:fl_chart/fl_chart.dart';
 // Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
@@ -772,12 +773,14 @@ class ForeignStockCardState extends State<ForeignStockCard> {
         ],
       );
     } else {
+      final requiredTotal = stock.cost! * widget.capacity!;
+      final missingAmount = requiredTotal - widget.profile!.moneyOnHand!;
       final howMany = (widget.profile!.moneyOnHand! / stock.cost!).floor();
       final String howManyString = howMany == 0 ? "cannot buy a single" : "can only buy $howMany";
       moneyToBuy = 'You $howManyString ${stock.name} with the money you have.';
       moneyToBuyExtra = 'You need '
-          '\$${costCurrency.format((stock.cost! * widget.capacity!) - widget.profile!.moneyOnHand!)} more '
-          '(a total of \$${costCurrency.format(stock.cost! * widget.capacity!)}) to buy ${widget.capacity}.';
+          '\$${costCurrency.format(missingAmount)} more '
+          '(a total of \$${costCurrency.format(requiredTotal)}) to buy ${widget.capacity}.';
       moneyToBuyColor = Colors.orange[800];
       costWidget = Row(
         children: [
@@ -822,14 +825,30 @@ class ForeignStockCardState extends State<ForeignStockCard> {
                           ),
                           const SizedBox(height: 10),
                           GestureDetector(
-                            child: Image.asset(
-                              'images/icons/home/vault.png',
-                              width: 40,
-                              height: 40,
-                              color: Colors.white,
+                            child: const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: Image(
+                                    image: AssetImage('images/icons/home/vault.png'),
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  'Open Vault',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                             onTap: () {
-                              _openWalletDialog();
+                              _openWalletDialog(requiredTotal: requiredTotal, missingAmount: missingAmount);
                             },
                           ),
                         ],
@@ -1975,7 +1994,97 @@ class ForeignStockCardState extends State<ForeignStockCard> {
     );
   }
 
-  Future<void> _openWalletDialog() {
+  void _copyToClipboard(String content, String successMessage) {
+    Clipboard.setData(ClipboardData(text: content));
+    BotToast.showText(
+      text: successMessage,
+      textStyle: const TextStyle(
+        fontSize: 14,
+        color: Colors.white,
+      ),
+      contentColor: Colors.green,
+      duration: const Duration(seconds: 4),
+      contentPadding: const EdgeInsets.all(10),
+    );
+  }
+
+  Widget _buildVaultCopyBox({
+    required String label,
+    required int amount,
+    required String successMessage,
+    bool highlight = false,
+  }) {
+    final formattedAmount = formatProfit(inputInt: amount).replaceAll('.0', '');
+    final borderColor = highlight ? Colors.blueGrey.shade300 : Colors.blueGrey.shade500;
+    final labelColor = _themeProvider.mainText;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => _copyToClipboard(amount.toString(), successMessage),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor, width: 1),
+          color: Colors.transparent,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  MdiIcons.cash,
+                  size: 16,
+                  color: _themeProvider.getTextColor(Colors.green),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '$label \$$formattedAmount',
+                    textAlign: TextAlign.center,
+                    softWrap: true,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: labelColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              children: [
+                Text(
+                  'Copy $label',
+                  textAlign: TextAlign.center,
+                  softWrap: true,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
+                  ),
+                ),
+                Icon(
+                  Icons.copy_rounded,
+                  size: 14,
+                  color: labelColor,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openWalletDialog({required int requiredTotal, required int missingAmount}) {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -2120,6 +2229,26 @@ class ForeignStockCardState extends State<ForeignStockCard> {
                                     browserTapType: BrowserTapType.long,
                                   );
                             },
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                          child: Column(
+                            children: [
+                              _buildVaultCopyBox(
+                                label: 'Total',
+                                amount: requiredTotal,
+                                successMessage: 'Total amount copied to clipboard!',
+                              ),
+                              const SizedBox(height: 10),
+                              _buildVaultCopyBox(
+                                label: 'Missing',
+                                amount: missingAmount,
+                                successMessage: 'Missing amount copied to clipboard!',
+                                highlight: true,
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 10),

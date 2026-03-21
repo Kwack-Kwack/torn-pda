@@ -48,8 +48,9 @@ class ReturnFlagPressed {
 
 class ForeignStockPage extends StatefulWidget {
   final String? apiKey;
+  final String? temporaryDestinationCountry;
 
-  const ForeignStockPage({required this.apiKey});
+  const ForeignStockPage({required this.apiKey, this.temporaryDestinationCountry});
 
   @override
   ForeignStockPageState createState() => ForeignStockPageState();
@@ -58,9 +59,25 @@ class ForeignStockPage extends StatefulWidget {
 class ForeignStockPageState extends State<ForeignStockPage> {
   ThemeProvider? _themeProvider;
   SettingsProvider? _settingsProvider;
+  late bool _previousRouteWithDrawer;
+  late String _previousRouteName;
 
   // Filter sheet state
   bool _isFilterSheetOpen = false;
+
+  bool get _temporaryDestinationFilterActive {
+    final destination = widget.temporaryDestinationCountry;
+    if (destination == null || destination.isEmpty) return false;
+
+    return _returnCountryName(destination) != CountryName.TORN;
+  }
+
+  CountryName? get _temporaryDestinationCountryName {
+    if (!_temporaryDestinationFilterActive) return null;
+    return _returnCountryName(widget.temporaryDestinationCountry);
+  }
+
+  bool get _hasItemFiltersApplied => _filteredTypes.any((enabled) => !enabled);
 
   Future? _apiCalled;
   late bool _apiSuccess;
@@ -178,6 +195,9 @@ class ForeignStockPageState extends State<ForeignStockPage> {
     _apiCalled = _fetchApiInformation();
     _restoreSharedPreferences();
 
+    _previousRouteWithDrawer = routeWithDrawer;
+    _previousRouteName = routeName;
+
     routeWithDrawer = false;
     routeName = "foreign_stock";
     _willPopSubscription = _settingsProvider!.willPopShouldGoBackStream.stream.listen((event) {
@@ -241,29 +261,29 @@ class ForeignStockPageState extends State<ForeignStockPage> {
                             },
                           ),
                         ),
-                        // Filter sheet (animated from bottom)
-                        AnimatedPositioned(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
-                          left: 0,
-                          right: 0,
-                          bottom: _isFilterSheetOpen ? 0 : -200,
-                          child: _filterSheetContent(),
-                        ),
-                        // FAB (always on top)
-                        AnimatedPositioned(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
-                          right: 35.0,
-                          bottom: _isFilterSheetOpen ? 215.0 : 25.0,
-                          child: FloatingActionButton.extended(
-                            icon: Icon(_isFilterSheetOpen ? Icons.close : Icons.filter_list),
-                            label: Text(_isFilterSheetOpen ? "Close" : "Filter"),
-                            elevation: 4,
-                            onPressed: _toggleFilterSheet,
-                            backgroundColor: Colors.orange,
+                        if (!_temporaryDestinationFilterActive)
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                            left: 0,
+                            right: 0,
+                            bottom: _isFilterSheetOpen ? 0 : -200,
+                            child: _filterSheetContent(),
                           ),
-                        ),
+                        if (!_temporaryDestinationFilterActive)
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                            right: 35.0,
+                            bottom: _isFilterSheetOpen ? 215.0 : 25.0,
+                            child: FloatingActionButton.extended(
+                              icon: Icon(_isFilterSheetOpen ? Icons.close : Icons.filter_list),
+                              label: Text(_isFilterSheetOpen ? "Close" : "Filter"),
+                              elevation: 4,
+                              onPressed: _toggleFilterSheet,
+                              backgroundColor: Colors.orange,
+                            ),
+                          ),
                       ],
                     );
                   } else {
@@ -332,8 +352,8 @@ class ForeignStockPageState extends State<ForeignStockPage> {
   }
 
   void _goBack(bool flag, bool shortTap) {
-    routeWithDrawer = true;
-    routeName = "drawer";
+    routeWithDrawer = _previousRouteWithDrawer;
+    routeName = _previousRouteName;
     // Returning 'false' to indicate we did not press a flag
     Navigator.pop(
       context,
@@ -660,11 +680,18 @@ class ForeignStockPageState extends State<ForeignStockPage> {
   }
 
   List<ForeignStock> get _visibleStocks {
-    if (_hiddenStocks.isEmpty) {
-      return List<ForeignStock>.from(_filteredStocksCards);
+    Iterable<ForeignStock> visibleStocks = _filteredStocksCards;
+
+    final temporaryCountry = _temporaryDestinationCountryName;
+    if (temporaryCountry != null) {
+      visibleStocks = visibleStocks.where((stock) => stock.country == temporaryCountry);
     }
 
-    return _filteredStocksCards.where((stock) {
+    if (_hiddenStocks.isEmpty) {
+      return List<ForeignStock>.from(visibleStocks);
+    }
+
+    return visibleStocks.where((stock) {
       for (final h in _hiddenStocks) {
         if (h.id == stock.id && h.countryCode == stock.countryCode) {
           return false;
@@ -679,6 +706,7 @@ class ForeignStockPageState extends State<ForeignStockPage> {
       return Column(
         children: [
           if (_isTourismDay()) _tourismBanner(),
+          if (_temporaryDestinationFilterActive) _temporaryDestinationBanner(),
           _buildHeader(),
         ],
       );
@@ -723,14 +751,14 @@ class ForeignStockPageState extends State<ForeignStockPage> {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
       child: Row(
         children: <Widget>[
-          const Text(
-            'Countries: ',
-            style: TextStyle(fontSize: 11),
+          Text(
+            _temporaryDestinationFilterActive ? 'Travel destination: ' : 'Countries: ',
+            style: const TextStyle(fontSize: 11),
           ),
           const SizedBox(width: 2),
           Flexible(
             child: Text(
-              _countriesFilteredText,
+              _temporaryDestinationFilterActive ? '${widget.temporaryDestinationCountry} only' : _countriesFilteredText,
               style: const TextStyle(fontSize: 11),
             ),
           ),
@@ -753,6 +781,28 @@ class ForeignStockPageState extends State<ForeignStockPage> {
               style: const TextStyle(fontSize: 11),
             ),
           ),
+          if (_hasItemFiltersApplied)
+            GestureDetector(
+              onTap: _showAllItemFilters,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.orange[800]!, width: 1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'SHOW ALL',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.orange[800],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -889,7 +939,7 @@ class ForeignStockPageState extends State<ForeignStockPage> {
       margin: const EdgeInsets.fromLTRB(20, 10, 20, 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.orange, width: 1),
+        border: Border.all(color: Colors.orange, width: 2),
         borderRadius: BorderRadius.circular(8),
         color: Colors.transparent,
       ),
@@ -915,6 +965,44 @@ class ForeignStockPageState extends State<ForeignStockPage> {
         ],
       ),
     );
+  }
+
+  Widget _temporaryDestinationBanner() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.orange, width: 1),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.transparent,
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.flight_land, color: Colors.orange, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Showing only ${widget.temporaryDestinationCountry} stocks from your travel tap',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAllItemFilters() {
+    for (var i = 0; i < _filteredTypes.length; i++) {
+      _filteredTypes[i] = true;
+    }
+
+    final saveList = <String>[];
+    for (final enabled in _filteredTypes) {
+      saveList.add(enabled ? '1' : '0');
+    }
+
+    Prefs().setStockTypeFilter(saveList);
+    _filterAndSortTopLists();
   }
 
   Future<void> _fetchApiInformation() async {

@@ -9,6 +9,7 @@ import 'package:torn_pda/utils/shared_prefs.dart';
 
 enum LiveActivityType {
   travel,
+  racing,
 }
 
 class LiveActivityBridgeController extends GetxController {
@@ -17,12 +18,10 @@ class LiveActivityBridgeController extends GetxController {
 
   final MethodChannel _channel;
 
-  // Stores the most recent push token received from the native side for the current Live Activity
-  // This token is specific to an active Live Activity instance and would be used if sending
-  // remote push notifications (e.g., for 'end' or 'update' events) directly to APNs for this LA
-  // Currently, this token is stored locally in the bridge service but not actively sent to a backend
+  // Most recent push token for the current Live Activity instance
   String? _currentActivityPushToken;
   String? get currentActivityPushToken => _currentActivityPushToken;
+  final Map<LiveActivityType, String?> _currentActivityPushTokens = {};
 
   bool _isInitialized = false;
 
@@ -44,7 +43,21 @@ class LiveActivityBridgeController extends GetxController {
   Future<void> _handleNativeMethodCalls(MethodCall call) async {
     log("LiveActivityBridgeService: Received call from native: ${call.method}");
     if (call.method == "liveActivityTokenUpdated") {
-      _currentActivityPushToken = call.arguments as String?;
+      final args = (call.arguments as Map?)?.cast<String, dynamic>();
+      final String? activityTypeRaw = args?['activityType'] as String?;
+      final String? token = args?['token'] as String?;
+      _currentActivityPushToken = token;
+
+      if (activityTypeRaw != null) {
+        final LiveActivityType? activityType = _activityTypeFromWireValue(activityTypeRaw);
+        if (activityType != null) {
+          _currentActivityPushTokens[activityType] = token;
+          await firebaseFunctions.registerLiveActivityActivityToken(
+            token: token,
+            activityType: activityType.name,
+          );
+        }
+      }
     } else if (call.method == "liveUpdateStatusChanged") {
       final args = (call.arguments as Map?)?.cast<String, dynamic>();
       if (args != null) {
@@ -86,6 +99,31 @@ class LiveActivityBridgeController extends GetxController {
     }
   }
 
+  Future<LiveUpdateStartResult> startRacingActivity({
+    required Map<String, dynamic> arguments,
+  }) async {
+    if (!_isInitialized) {
+      initializeHandler();
+    }
+    try {
+      final dynamic response = await _channel.invokeMethod('startRacingActivity', arguments);
+      final result = LiveUpdateStartResult.fromDynamic(response);
+      if (result.capabilitySnapshot != null) {
+        _emitCapabilitySnapshot(result.capabilitySnapshot!);
+      }
+      return result;
+    } on PlatformException catch (e) {
+      log("LiveActivityBridgeService: PlatformException during racing start/update: ${e.message} - Details: ${e.details}");
+      return LiveUpdateStartResult(
+        status: LiveUpdateRequestStatus.error,
+        errorMessage: e.message,
+      );
+    } catch (e) {
+      log("LiveActivityBridgeService: Generic error during racing start/update: $e");
+      return const LiveUpdateStartResult(status: LiveUpdateRequestStatus.error);
+    }
+  }
+
   Future<LiveUpdateEndResult> endActivity({String? sessionId}) async {
     if (!_isInitialized) initializeHandler();
     try {
@@ -111,6 +149,32 @@ class LiveActivityBridgeController extends GetxController {
       return isActive;
     } catch (e) {
       log("LiveActivityBridgeService: Error checking if any activity is active: $e");
+      return false;
+    }
+  }
+
+  Future<LiveUpdateEndResult> endRacingActivity() async {
+    if (!_isInitialized) initializeHandler();
+    try {
+      final dynamic response = await _channel.invokeMethod('endRacingActivity');
+      log("LiveActivityBridgeService: endRacingActivity method invoked.");
+      return LiveUpdateEndResult.fromDynamic(response);
+    } on PlatformException catch (e) {
+      log("LiveActivityBridgeService: PlatformException ending racing activity: ${e.message} - Details: ${e.details}");
+      return LiveUpdateEndResult(success: false, errorMessage: e.message);
+    } catch (e) {
+      log("LiveActivityBridgeService: Generic error ending racing activity: $e");
+      return const LiveUpdateEndResult(success: false);
+    }
+  }
+
+  Future<bool> isAnyRacingActivityActive() async {
+    if (!_isInitialized) initializeHandler();
+    try {
+      final bool isActive = await _channel.invokeMethod('isAnyRacingActivityActive');
+      return isActive;
+    } catch (e) {
+      log("LiveActivityBridgeService: Error checking if any racing activity is active: $e");
       return false;
     }
   }
@@ -161,6 +225,10 @@ class LiveActivityBridgeController extends GetxController {
     );
   }
 
+  String? currentActivityPushTokenFor(LiveActivityType activityType) {
+    return _currentActivityPushTokens[activityType];
+  }
+
   Future<String?> _getUpdatedLiveActivityTokenIfNeeded({
     required LiveActivityType activityType,
     required bool force,
@@ -194,6 +262,17 @@ class LiveActivityBridgeController extends GetxController {
     } catch (e) {
       log("LiveActivityBridge: Error getting token for '${activityType.name}': $e");
       return null;
+    }
+  }
+
+  LiveActivityType? _activityTypeFromWireValue(String rawValue) {
+    switch (rawValue) {
+      case 'travel':
+        return LiveActivityType.travel;
+      case 'racing':
+        return LiveActivityType.racing;
+      default:
+        return null;
     }
   }
 

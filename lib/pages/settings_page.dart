@@ -1487,6 +1487,9 @@ class SettingsPageState extends State<SettingsPage> {
                           if (!enabled) {
                             Get.find<FFScouterCacheController>().clearCache();
                           }
+                          if (Get.isRegistered<WarController>()) {
+                            Get.find<WarController>().reloadFFScouterSettings();
+                          }
                         });
                       },
                       activeTrackColor: Colors.lightGreenAccent,
@@ -1529,6 +1532,9 @@ class SettingsPageState extends State<SettingsPage> {
                     onChanged: (value) {
                       setState(() {
                         _settingsProvider.ffsOverrideSpyMonths = value.round();
+                        if (Get.isRegistered<WarController>()) {
+                          Get.find<WarController>().reloadFFScouterSettings();
+                        }
                       });
                     },
                   ),
@@ -1759,7 +1765,8 @@ class SettingsPageState extends State<SettingsPage> {
                 children: [
                   const Text("Choose reviving providers"),
                   IconButton(
-                    icon: const Icon(Icons.keyboard_arrow_right_outlined),
+                    icon: const Icon(MdiIcons.hospitalBoxOutline),
+                    color: _themeProvider.getTextColor(Colors.red.shade600),
                     onPressed: () {
                       showDialog(
                         useRootNavigator: false,

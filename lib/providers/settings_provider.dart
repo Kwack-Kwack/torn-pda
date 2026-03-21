@@ -529,6 +529,22 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  var _travelNotificationTapAction = "browser";
+  String get travelNotificationTapAction => _travelNotificationTapAction;
+  set travelNotificationTapAction(value) {
+    _travelNotificationTapAction = value;
+    Prefs().setTravelNotificationTapAction(_travelNotificationTapAction);
+    notifyListeners();
+  }
+
+  var _travelLiveActivityTapAction = "browser";
+  String get travelLiveActivityTapAction => _travelLiveActivityTapAction;
+  set travelLiveActivityTapAction(value) {
+    _travelLiveActivityTapAction = value;
+    Prefs().setTravelLiveActivityTapAction(_travelLiveActivityTapAction);
+    notifyListeners();
+  }
+
   var _fullScreenByDeepLinkTap = false;
   bool get fullScreenByDeepLinkTap => _fullScreenByDeepLinkTap;
   set fullScreenByDeepLinkTap(bool value) {
@@ -598,6 +614,14 @@ class SettingsProvider extends ChangeNotifier {
   set changeRemoveAirplane(bool value) {
     _removeAirplane = value;
     Prefs().setRemoveAirplane(_removeAirplane);
+    notifyListeners();
+  }
+
+  var _androidFastKeyboard = false;
+  bool get androidFastKeyboard => _androidFastKeyboard;
+  set androidFastKeyboard(bool value) {
+    _androidFastKeyboard = value;
+    Prefs().setAndroidFastKeyboard(_androidFastKeyboard);
     notifyListeners();
   }
 
@@ -1428,6 +1452,13 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String _reviveCombatReadyPrice = "1.5 million or 2 Xanax";
+  String get reviveCombatReadyPrice => _reviveCombatReadyPrice;
+  set reviveCombatReadyPrice(String value) {
+    _reviveCombatReadyPrice = value;
+    notifyListeners();
+  }
+
   bool _tctClockHighlightsEvents = true;
   bool get tctClockHighlightsEvents => _tctClockHighlightsEvents;
   set tctClockHighlightsEvents(bool value) {
@@ -1491,11 +1522,38 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  bool _iosLiveActivitiesRacingEnabled = false;
+  bool get iosLiveActivityRacingEnabled => _iosLiveActivitiesRacingEnabled;
+  set iosLiveActivityRacingEnabled(bool enabled) {
+    _iosLiveActivitiesRacingEnabled = enabled;
+    Prefs().setIosLiveActivityRacingEnabled(enabled);
+    notifyListeners();
+
+    if (enabled) {
+      if (kSdkIos >= 17.2) {
+        log("Racing Live Activities enabled by user. Requesting push-to-start token...");
+        final bridgeController = Get.find<LiveActivityBridgeController>();
+        bridgeController.getPushToStartTokenAndSendToFirebase(force: true, activityType: LiveActivityType.racing);
+      }
+    } else {
+      FirestoreHelper().disableLiveActivityRacing();
+      Prefs().setLaPushToken(token: null, activityType: LiveActivityType.racing);
+    }
+  }
+
   bool _androidLiveActivitiesTravelEnabled = false;
   bool get androidLiveActivityTravelEnabled => _androidLiveActivitiesTravelEnabled;
   set androidLiveActivityTravelEnabled(bool enabled) {
     _androidLiveActivitiesTravelEnabled = enabled;
     Prefs().setAndroidLiveActivityTravelEnabled(enabled);
+    notifyListeners();
+  }
+
+  bool _androidLiveActivitiesRacingEnabled = false;
+  bool get androidLiveActivityRacingEnabled => _androidLiveActivitiesRacingEnabled;
+  set androidLiveActivityRacingEnabled(bool enabled) {
+    _androidLiveActivitiesRacingEnabled = enabled;
+    Prefs().setAndroidLiveActivityRacingEnabled(enabled);
     notifyListeners();
   }
 
@@ -1522,6 +1580,7 @@ class SettingsProvider extends ChangeNotifier {
     _androidBrowserTextScale = await Prefs().getAndroidBrowserTextScale();
 
     _androidLiveActivitiesTravelEnabled = await Prefs().getAndroidLiveActivityTravelEnabled();
+    _androidLiveActivitiesRacingEnabled = await Prefs().getAndroidLiveActivityRacingEnabled();
 
     // Gestures
     _iosBrowserPinch = await Prefs().getIosBrowserPinch();
@@ -1564,6 +1623,8 @@ class SettingsProvider extends ChangeNotifier {
     _drugsNotificationTapAction = await Prefs().getDrugsNotificationTapAction();
     _medicalNotificationTapAction = await Prefs().getMedicalNotificationTapAction();
     _boosterNotificationTapAction = await Prefs().getBoosterNotificationTapAction();
+    _travelNotificationTapAction = await Prefs().getTravelNotificationTapAction();
+    _travelLiveActivityTapAction = await Prefs().getTravelLiveActivityTapAction();
 
     final refresh = await Prefs().getBrowserRefreshMethod();
     switch (refresh) {
@@ -1586,6 +1647,7 @@ class SettingsProvider extends ChangeNotifier {
     _highlightWordList = await Prefs().getHighlightWordList();
 
     _removeAirplane = await Prefs().getRemoveAirplane();
+    _androidFastKeyboard = await Prefs().getAndroidFastKeyboard();
     _removeForeignItemsDetails = await Prefs().getRemoveForeignItemsDetails();
     _preventBasketKeyboard = await Prefs().getPreventBasketKeyboard();
     _removeTravelQuickReturnButton = await Prefs().getRemoveTravelQuickReturnButton();
@@ -1761,7 +1823,9 @@ class SettingsProvider extends ChangeNotifier {
     _showMemoryInWebview = await Prefs().getShowMemoryInWebview();
 
     _androidLiveActivitiesTravelEnabled = await Prefs().getAndroidLiveActivityTravelEnabled();
+    _androidLiveActivitiesRacingEnabled = await Prefs().getAndroidLiveActivityRacingEnabled();
     _iosLiveActivitiesTravelEnabled = await Prefs().getIosLiveActivityTravelEnabled();
+    _iosLiveActivitiesRacingEnabled = await Prefs().getIosLiveActivityRacingEnabled();
 
     _joblessWarningEnabled = await Prefs().getJoblessWarningEnabled();
 
