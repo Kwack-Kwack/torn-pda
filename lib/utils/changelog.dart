@@ -102,11 +102,12 @@ class ChangeLogState extends State<ChangeLog> {
 
     // TODO: UPDATE REMOTE CONFIG FOR CHANGELOG!
 
-    // v3.13.0 - Build 637 - built 18/03/2026
+    // v3.13.1 - Build 638 - built 22/03/2026
     itemList.add(
       ChangeLogItem()
-        ..version = 'Torn PDA v3.13.0'
+        ..version = 'Torn PDA v3.13.1'
         ..date = '25 MAR 2026'
+        ..hotfixes = ['Hotfix for notifications not working in some devices']
         ..features = [
           "Added Racing Live Updates",
           "Trades: added TornW3B sync support",
