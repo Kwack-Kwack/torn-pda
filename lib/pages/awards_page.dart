@@ -663,6 +663,12 @@ class AwardsPageState extends State<AwardsPage> {
             height: 15,
             color: _themeProvider.mainText,
           );
+        case "hospital":
+          // TODO: Hotfix, may want to replace with an actual hospital icon later. 
+          catIcon = const Text(
+            "+",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          );
         default:
           catIcon = const Text(
             'T',
