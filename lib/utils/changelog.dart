@@ -102,6 +102,16 @@ class ChangeLogState extends State<ChangeLog> {
 
     // TODO: UPDATE REMOTE CONFIG FOR CHANGELOG!
 
+    // v3.13.2 - Build 639 - built 30/03/2026
+    itemList.add(
+      ChangeLogItem()
+        ..version = 'Torn PDA v3.13.2'
+        ..date = '05 APR 2026'
+        ..features = [
+          "Fixed YATA Awards section [Kwack]",
+        ],
+    );
+
     // v3.13.1 - Build 638 - built 22/03/2026
     itemList.add(
       ChangeLogItem()

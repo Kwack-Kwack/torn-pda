@@ -589,8 +589,8 @@ class AwardsPageState extends State<AwardsPage> {
     final catChips = <Widget>[];
     for (final cat in _allCategories.keys) {
       Widget catIcon = const SizedBox.shrink();
-      String? catStats = _allCategories[cat];
-      switch (cat) {
+      final catStats = _allCategories[cat] ?? _allCategories["Other"] ?? "0/0";
+      switch (cat?.toLowerCase()) {
         case "crimes":
           catIcon = Image.asset(
             'images/awards/categories/fingerprint.png',
@@ -657,18 +657,25 @@ class AwardsPageState extends State<AwardsPage> {
             height: 15,
             color: _themeProvider.mainText,
           );
+
         case "miscellaneous":
           catIcon = Image.asset(
             'images/awards/categories/checkered_flag.png',
             height: 15,
             color: _themeProvider.mainText,
           );
+        case "hospital":
+          catIcon = Icon(
+            Icons.local_hospital_outlined,
+            size: 20,
+            color: _themeProvider.mainText,
+          );
+
         default:
           catIcon = const Text(
-            'T',
+            '?',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
           );
-          catStats = _allCategories["Other"];
           break;
       }
 
@@ -678,7 +685,7 @@ class AwardsPageState extends State<AwardsPage> {
           selected: _hiddenCategories.contains(cat) ? false : true,
           side: BorderSide(color: _hiddenCategories.contains(cat) ? Colors.grey[600]! : Colors.green, width: 1.5),
           avatar: catIcon,
-          label: Text(catStats!, style: const TextStyle(fontSize: 12)),
+          label: Text(catStats, style: const TextStyle(fontSize: 12)),
           selectedColor: Colors.transparent,
           disabledColor: Colors.grey,
           onSelected: (bool isSelected) {
@@ -822,7 +829,7 @@ class AwardsPageState extends State<AwardsPage> {
           // been seen yet. Later we will add current/max to each category
           // in _populateCategoryValues()
           if (!_allCategories.containsKey(singleAward.category)) {
-            _allCategories.addAll({singleAward.category: ""});
+            _allCategories.addAll({singleAward.category: "0/0"});
           }
 
           // Add to pinned list
