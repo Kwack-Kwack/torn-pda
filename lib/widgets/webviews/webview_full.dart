@@ -3048,6 +3048,7 @@ class WebViewFullState extends State<WebViewFull>
     _assessExitFullScreenScript(document);
     _assessProfileAgeToWords();
     _assessBugReportsWarning();
+    _assessRacewayRedirect(document);
   }
 
   Future _assessSectionsWithWidgets() async {
@@ -4219,6 +4220,14 @@ class WebViewFullState extends State<WebViewFull>
           ),
         ),
       );
+    }
+  }
+
+  void _assessRacewayRedirect(dom.Document document) {
+    if (!_currentUrl.contains("loader.php?sid=racing")) return;
+    if (document.outerHtml.contains("Please use the new endpoints instead (page.php).")) {
+      BotToast.showText(text: "Redirecting to new raceway page...");
+      _loadUrl("https://www.torn.com/page.php?sid=racing");
     }
   }
 
